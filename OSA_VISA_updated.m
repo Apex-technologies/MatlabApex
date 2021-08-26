@@ -299,6 +299,54 @@ classdef OSA_VISA_updated < handle
           obj.NoiseMaskValue = NoiseMaskValue;
       end
       
+      function Data = GetDataBin(obj, ScaleX, ScaleY, TraceNumber)
+        %         Get the spectrum data of a measurement
+        %         returns a 2D list [Y-axis Data, X-Axis Data]
+        %         ScaleX is a string which can be :
+        %             - "nm" : get the X-Axis Data in nm (default)
+        %             - "GHz": get the X-Axis Data in GHz
+        %         ScaleY is a string which can be :
+        %             - "log" : get the Y-Axis Data in dBm (default)
+        %             - "lin" : get the Y-Axis Data in mW
+        %         TraceNumber is an integer between 1 (default) and 6  
+               % X-Data
+               %Remove data from input buffer before reading the data 
+                flushinput(obj.Session);
+                if ScaleX == "ghz"
+                    Command = "SPDATAFB" + int2str(TraceNumber) + "\n";
+                else
+                    Command = "SPDATAWLB" + int2str(TraceNumber) + "\n";
+                end
+%                 Command = "SPDATAWLB" + int2str(TraceNumber) + "\n"; 
+                fprintf(obj.Session,Command); 
+                % Pause for the communication delay
+                %pause(0.01);   
+%                 disp("APEX_OSA.BytesAvailable =" + APEX_OSA.BytesAvailable);  
+                % XData = fscanf(APEX_OSA,'%f');
+                XData = fread(obj.Session,obj.NPoints,'double');
+                %     disp("the number of value to received =" + APEX_OSA.ValuesReceived); 
+                
+                flushinput(obj.Session);
+                % flushinput(APEX_OSA);
+                % Y-Data
+                % Get Y-axis Data
+                if ScaleY == "lin"
+                    Command = "SPDATALB" + int2str(TraceNumber) + "\n";
+                else
+                    Command = "SPDATADB" + int2str(TraceNumber) + "\n";
+                end
+%                 Command = "SPDATADB" + int2str(TraceNumber) + "\n"; 
+                fprintf(obj.Session,Command); 
+                % Pause for the communication delay
+                %pause(0.010);   
+                YData = fread(obj.Session,obj.NPoints,'float32');
+                % Specifies the total number of values read from the server.
+                % disp("the number of value to received =" + APEX_OSA.ValuesReceived); 
+                %Remove data from input buffer for the new data read
+                %flushinput(obj.Session);
+                Data = [XData,YData]; 
+      end
+      
       function SetScaleXUnit(obj, ScaleXUnit)
 %          '''
 %         Defines the unit of the X-Axis
